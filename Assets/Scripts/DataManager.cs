@@ -5,7 +5,7 @@ using System.IO;
 
 public class DataManager : MonoBehaviour
 {
-    public GameObject Player;
+    public GameObject player;
     [SerializeField] private PlayerController playerController;
 
     void Start()
@@ -24,8 +24,9 @@ public class DataManager : MonoBehaviour
     void SaveData() 
     {
         Data data = new Data();
-        data.playerPosition = Player.transform.position;
-        data.playerRotation = Player.transform.rotation;
+        data.health = playerController.health;
+        data.playerPosition = player.transform.position;
+        data.playerRotation = player.transform.rotation;
         data.movement = playerController.playerMovement;
 
         string json = JsonUtility.ToJson(data);
@@ -37,8 +38,9 @@ public class DataManager : MonoBehaviour
         string json = File.ReadAllText(Application.dataPath + "/playerData.json");
         Data data = JsonUtility.FromJson<Data>(json);
 
-        Player.transform.position = data.playerPosition;
-        Player.transform.rotation = data.playerRotation;
+        playerController.health = data.health;
+        player.transform.position = data.playerPosition;
+        player.transform.rotation = data.playerRotation;
         playerController.playerMovement = data.movement;
     }
 }
