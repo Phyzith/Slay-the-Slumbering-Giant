@@ -1,11 +1,20 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI; 
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    public float moveTime = 1f;
+    [Header("Other Scripts")]
+    [SerializeField] private UIManager uiManager;
+
+    [Header("Player Settings")]
+    public int maxHealth = 5;
+    public int health = 5;
+    public int maxPlayerMovement = 2;
     public int playerMovement = 2;
+    public float moveTime = 1f;
+    public Weapon playerWeapon;
+    public Armor playerArmor;
 
     [Header("Hex Settings")]
     public int pathMovementCost = 0;
@@ -20,11 +29,17 @@ public class PlayerController : MonoBehaviour
     private Vector3 targetPosition = Vector3.zero;
     private Vector3Int currentCellPos;
 
+    [Header("Buttons")]
+    [SerializeField] private Button stayButton;
+
+
     void Start()
     {
+        stayButton.onClick.AddListener(stay);
         if (mainCamera == null) {mainCamera = Camera.main;}
         targetPosition = transform.position;
         currentCellPos = targetTilemap.WorldToCell(transform.position);
+        setGear();
     }
 
     void Update()
@@ -72,7 +87,8 @@ public class PlayerController : MonoBehaviour
         return new Vector3Int(0,0,0);
     }
 
-    bool isHexAdjacent(Vector3Int cellPos) {
+    bool isHexAdjacent(Vector3Int cellPos) 
+    {
         if (cellPos == currentCellPos) return false;
 
         Vector3 from = targetTilemap.GetCellCenterWorld(currentCellPos);
@@ -87,5 +103,22 @@ public class PlayerController : MonoBehaviour
     void MovePlayer(Vector3 hexPos) 
     {
         transform.position = Vector3.SmoothDamp(transform.position, hexPos, ref currentVelocity, moveTime);
+    }
+
+    void setGear() 
+    {
+        if (playerWeapon == null || string.IsNullOrEmpty(playerWeapon.name)) {
+            playerWeapon = new Weapon(Gear.shortSword);
+        }
+
+        if (playerArmor == null || string.IsNullOrEmpty(playerArmor.name)) {
+            playerArmor = new Armor(Gear.leatherArmor);
+        }
+    }
+
+    void stay()
+    {
+        health = Mathf.Min(health + playerMovement, maxHealth);
+        uiManager.enableCombatUI();
     }
 }
