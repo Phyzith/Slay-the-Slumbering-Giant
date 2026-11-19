@@ -3720,13 +3720,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveTime: 0.2
-  playerMovement: 999
+  playerMovement: 5
   pathMovementCost: 0
   plainsMovementCost: 1
   forestMovementCost: 2
   seaMovementCost: 2
   targetTilemap: {fileID: 458674618}
   mainCamera: {fileID: 519420031}
+--- !u!114 &1389554032
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1389554026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba632b7b12b9da24ba4904a4ac3704c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Player: {fileID: 1389554026}
+  playerController: {fileID: 1389554027}
 --- !u!1001 &6975744176901620231
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3786,6 +3800,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5391646471739342017, guid: 0ef47e046aa424747b7a6622bf1ba49b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1389554027}
+    - targetCorrespondingSourceObject: {fileID: 5391646471739342017, guid: 0ef47e046aa424747b7a6622bf1ba49b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1389554032}
   m_SourcePrefab: {fileID: 100100000, guid: 0ef47e046aa424747b7a6622bf1ba49b, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
