@@ -5,8 +5,14 @@ using DG.Tweening;
 
 public class UIManager : MonoBehaviour
 {
+
+// -- VARIABLES --------------------
+
+    // Managers
     [SerializeField] private PlayerController playerController;
     [SerializeField] private CombatManager combatManager;
+
+    // UI
     [SerializeField] private GameObject backgroundPanel;
     [SerializeField] private Slider playerHealthSlider;
     [SerializeField] private TMP_Text playerHealthText;
@@ -23,9 +29,15 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject toolbarPanel;
     [SerializeField] private Canvas explorationUI;
 
-    public float uiMoveDistance = 9999f;
-    public float characterWalkDuration = 5f;
-    public float uiMoveDuration = .25f;
+    // Constants
+    public float UI_MOVE_DISTANCE = 9999f;
+    public float CHAR_WALK_DURATION = 5f;
+    public float UI_MOVE_DURATION = .25f;
+    public float ATTACK_ANIM_DURATION = .25f;
+    public float ATTACK_ANIM_SIZE_MULT = 2f;
+    public float CHAR_OFFSCREEN_X = 1200f; 
+
+    // Original Position Saves
     private Vector3 toolbarPanelOrigPos;
     private Vector3 playerHealthSliderOrigPos;
     private Vector3 playerHealthTextOrigPos;
@@ -34,11 +46,7 @@ public class UIManager : MonoBehaviour
     private Vector3 enemyHealthTextOrigPos;
     private Vector2 enemyImageOrigPos;
 
-    public float attackAnimDuration = .25f;
-    public float attackAnimSizeMultiplier = 2f;
-
-    // buttons
-
+// -- START --------------------
 
     void Start() 
     {
@@ -52,12 +60,10 @@ public class UIManager : MonoBehaviour
         enemyImageOrigPos = enemyImage.rectTransform.anchoredPosition;
 
         // disables all of the combat ui
-        toolbarPanel.SetActive(false);
-        enemyHealthSlider.gameObject.SetActive(false);
-        enemyImage.enabled = false;
-        playerImage.enabled = false;
-        backgroundPanel.SetActive(false);        
+        HideCombatUI();     
     }
+
+// -- UPDATES --------------------
 
     void Update()
     {
@@ -90,6 +96,8 @@ public class UIManager : MonoBehaviour
         enemyHealthText.text = $"{combatManager.enemy.name}: {combatManager.enemy.health} / {combatManager.enemy.maxHealth}";
     }
 
+// -- CARDS --------------------
+
     public void createGearCard(string name, string description) 
     {
         GameObject gearCard = Instantiate(gearCardTemplate, gearPanel);
@@ -99,124 +107,6 @@ public class UIManager : MonoBehaviour
 
         if (nameText != null) {nameText.GetComponent<TMP_Text>().text = name;}
         if (descriptionText != null) {descriptionText.GetComponent<TMP_Text>().text = description;}
-    }
-
-    public void attackAnimation(bool isPlayer)
-    {
-        int direction;
-        Image character;
-
-        if (isPlayer) 
-        {
-            direction = 1;
-            character = playerImage;
-        } else {
-            direction = -1;
-            character = enemyImage;
-        }
-
-        
-        Vector3 origPosition = character.transform.position;
-        Vector3 origScale = character.transform.localScale;
-
-        Sequence seq = DOTween.Sequence();
-        seq.Append(character.transform.DOMove(character.transform.position + new Vector3(100 * direction, 0, 0), attackAnimDuration/2).SetEase(Ease.InOutQuad));
-        seq.Join(character.transform.DOScale(origScale * attackAnimSizeMultiplier, attackAnimDuration/2));
-        seq.Append(character.transform.DOMove(origPosition, attackAnimDuration/2).SetEase(Ease.InOutQuad));
-        seq.Join(character.transform.DOScale(origScale, attackAnimDuration/2));
-    }
-
-    public async void disableCombatUI() 
-    {
-        moveCombatUIOffscreen(); // moves the combat ui offscreen
-
-        // waits for the combat ui to be onscreen then disables it
-        await Awaitable.WaitForSecondsAsync(characterWalkDuration, destroyCancellationToken);
-        toolbarPanel.SetActive(false);
-        enemyHealthSlider.gameObject.SetActive(false);
-        enemyImage.enabled = false;
-        playerImage.enabled = false;
-        backgroundPanel.SetActive(false);
-
-        moveCombatUIOnscreen(); // moves the combat ui onscreen
-        explorationUI.enabled = true;
-
-        //lootEnemy();
-    }
-
-    public async void enableCombatUI() 
-    {
-        combatManager.setNewEnemy(); // resets the enemy that the player will be fighting
-        
-            moveCombatUIOffscreen(); // moves the combat ui offscreen
-            
-        loadCharacterSprites(combatManager.enemy.name);
-        // waits for the combat ui to be onscreen then enables it
-        await Awaitable.WaitForSecondsAsync(characterWalkDuration, destroyCancellationToken);
-        toolbarPanel.SetActive(true);
-        enemyHealthSlider.gameObject.SetActive(true);
-        enemyImage.enabled = true;
-        playerImage.enabled = true;
-        backgroundPanel.SetActive(true);
-
-        moveCombatUIOnscreen(); // moves the combat ui onscreen
-        explorationUI.enabled = false;
-    }
-
-    private void moveCombatUIOffscreen() 
-    {
-        toolbarPanel.transform.DOMove(toolbarPanel.transform.position + new Vector3(0, -uiMoveDistance, 0), uiMoveDuration).SetEase(Ease.InOutQuad);
-        enemyHealthSlider.transform.DOMove(enemyHealthSlider.transform.position + new Vector3(uiMoveDistance, 0, 0), uiMoveDuration).SetEase(Ease.InOutQuad);
-        characterWalk(enemyImage, new Vector2(uiMoveDistance, 0), 7, 30f, characterWalkDuration);
-        characterWalk(playerImage, new Vector2(-uiMoveDistance, 0), 7, 30f, characterWalkDuration);
-
-        CanvasGroup canvasGroup = backgroundPanel.GetComponent<CanvasGroup>();
-        canvasGroup.DOKill();
-        canvasGroup.DOFade(0f, uiMoveDuration).SetEase(Ease.OutQuad);
-    }
-
-    private void moveCombatUIOnscreen() 
-    {
-        toolbarPanel.transform.DOMove(toolbarPanelOrigPos, uiMoveDuration).SetEase(Ease.InOutQuad);
-        enemyHealthSlider.transform.DOMove(enemyHealthSliderOrigPos, uiMoveDuration).SetEase(Ease.InOutQuad);
-        characterWalk(enemyImage, enemyImageOrigPos, 7, 30f, 5f);
-        characterWalk(playerImage, playerImageOrigPos, 7, 30f, 5f);
-
-        CanvasGroup canvasGroup = backgroundPanel.GetComponent<CanvasGroup>();
-        canvasGroup.DOKill();
-        canvasGroup.DOFade(1f, uiMoveDuration).SetEase(Ease.OutQuad);
-    }
-
-    private void characterWalk(Image character, Vector2 targetPosition, int numHops, float hopHeight, float duration)
-    {
-        if (numHops <= 0) return;
-
-        RectTransform rect = character.rectTransform;
-
-        float startX = rect.anchoredPosition.x;
-        float targetX = targetPosition.x;
-        float y = rect.anchoredPosition.y;
-        float hopDuration = duration / numHops;
-
-        Sequence seq = DOTween.Sequence();
-
-        for (int i = 1; i <= numHops; i++)
-        {
-            float nextX = Mathf.Lerp(startX, targetX, i / (float)numHops);
-            seq.Append(rect.DOJumpAnchorPos(new Vector2(nextX, y), hopHeight, 1, hopDuration).SetEase(Ease.Linear));
-        }
-    }
-
-    public void lootEnemy() 
-    {
-        int numCards = 0;
-        lootPanel.gameObject.SetActive(true);
-
-        createLootCard(combatManager.enemy.weapon.name, $"Deals 1 to {combatManager.enemy.weapon.weaponDie} Damage"); // adds the enemies weapon to the loot pool
-        numCards++;
-
-        createLootCard(combatManager.enemy.armor.name, $"Protects against 1 to {combatManager.enemy.armor.armorDie} Damage"); // adds the enemies armor to the loot pool
-        numCards++;
     }
 
     private void createLootCard(string name, string description) 
@@ -258,8 +148,166 @@ public class UIManager : MonoBehaviour
             Destroy(clickedButton.transform.parent.gameObject);
         }
     }
-    
-    
+
+// -- CHARACTER ANIMATION --------------------
+
+    public void attackAnimation(bool isPlayer)
+    {
+        int direction;
+        Image character;
+
+        if (isPlayer) 
+        {
+            direction = 1;
+            character = playerImage;
+        } else {
+            direction = -1;
+            character = enemyImage;
+        }
+
+        
+        Vector3 origPosition = character.transform.position;
+        Vector3 origScale = character.transform.localScale;
+
+        Sequence seq = DOTween.Sequence();
+        seq.Append(character.transform.DOMove(character.transform.position + new Vector3(100 * direction, 0, 0), ATTACK_ANIM_DURATION/2).SetEase(Ease.InOutQuad));
+        seq.Join(character.transform.DOScale(origScale * ATTACK_ANIM_SIZE_MULT, ATTACK_ANIM_DURATION/2));
+        seq.Append(character.transform.DOMove(origPosition, ATTACK_ANIM_DURATION/2).SetEase(Ease.InOutQuad));
+        seq.Join(character.transform.DOScale(origScale, ATTACK_ANIM_DURATION/2));
+    }
+
+    private void characterWalk(Image character, float targetX, float groundY, int numHops, float hopHeight, float duration)
+    {
+        if (numHops <= 0) return;
+
+        RectTransform rect = character.rectTransform;
+        rect.DOKill(); // kill any walk already running on this character
+
+        float startX = rect.anchoredPosition.x;
+        float hopDuration = duration / numHops;
+
+        Sequence seq = DOTween.Sequence();
+
+        for (int i = 1; i <= numHops; i++)
+        {
+            float hopStartX = Mathf.Lerp(startX, targetX, (i - 1) / (float)numHops);
+            float hopEndX   = Mathf.Lerp(startX, targetX, i / (float)numHops);
+
+            seq.Append(DOTween.To(
+                () => 0f,
+                t => rect.anchoredPosition = new Vector2(
+                    Mathf.Lerp(hopStartX, hopEndX, t),
+                    groundY + Mathf.Sin(t * Mathf.PI) * hopHeight),
+                1f,
+                hopDuration).SetEase(Ease.Linear));
+        }
+
+        seq.SetTarget(rect);                  // lets rect.DOKill() find it
+        seq.SetLink(character.gameObject);
+        seq.OnComplete(() => rect.anchoredPosition = new Vector2(targetX, groundY)); // snap exactly to ground
+    }
+
+// -- COMBAT UI --------------------
+
+    public async void disableCombatUI() 
+    {
+        // enables the exploration ui
+        explorationUI.enabled = true;
+
+        // moves the combat ui offscreen
+        moveCombatUIOffscreen();
+
+        // waits for the combat ui to be onscreen then disables it
+        await Awaitable.WaitForSecondsAsync(CHAR_WALK_DURATION, destroyCancellationToken);
+        toolbarPanel.SetActive(false);
+        enemyHealthSlider.gameObject.SetActive(false);
+        enemyImage.enabled = false;
+        playerImage.enabled = false;
+        backgroundPanel.SetActive(false);
+
+        // moves all ui onscreen instantly
+        enemyImage.rectTransform.DOKill();
+        playerImage.rectTransform.DOKill();
+        toolbarPanel.transform.position = toolbarPanelOrigPos;
+        enemyHealthSlider.transform.position = enemyHealthSliderOrigPos;
+        enemyImage.rectTransform.anchoredPosition  = enemyImageOrigPos;
+        playerImage.rectTransform.anchoredPosition = playerImageOrigPos;
+        backgroundPanel.GetComponent<CanvasGroup>().alpha = 1f;
+
+        //lootEnemy();
+    }
+
+    public void enableCombatUI()
+    {
+        combatManager.setNewEnemy();
+        loadCharacterSprites(combatManager.enemy.name);
+
+        // enables all the combat ui
+        toolbarPanel.SetActive(true);
+        enemyHealthSlider.gameObject.SetActive(true);
+        enemyImage.enabled = true;
+        playerImage.enabled = true;
+        backgroundPanel.SetActive(true);
+        explorationUI.enabled = false;
+
+        // moves all ui offscreen instantly
+        enemyImage.rectTransform.DOKill();
+        playerImage.rectTransform.DOKill();
+        toolbarPanel.transform.position = toolbarPanelOrigPos + new Vector3(0, -UI_MOVE_DISTANCE, 0);
+        enemyHealthSlider.transform.position = enemyHealthSliderOrigPos + new Vector3(UI_MOVE_DISTANCE, 0, 0);
+        enemyImage.rectTransform.anchoredPosition  = new Vector2( CHAR_OFFSCREEN_X, enemyImageOrigPos.y);
+        playerImage.rectTransform.anchoredPosition = new Vector2(-CHAR_OFFSCREEN_X, playerImageOrigPos.y);
+        backgroundPanel.GetComponent<CanvasGroup>().alpha = 0f;
+
+        // animates the ui onto the screen
+        moveCombatUIOnscreen();
+    }
+
+    private void moveCombatUIOffscreen() 
+    {
+        toolbarPanel.transform.DOMove(toolbarPanel.transform.position + new Vector3(0, -UI_MOVE_DISTANCE, 0), UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
+        enemyHealthSlider.transform.DOMove(enemyHealthSlider.transform.position + new Vector3(UI_MOVE_DISTANCE, 0, 0), UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
+        float offscreenX = ((RectTransform)explorationUI.transform).rect.width; // or the combat canvas
+        characterWalk(enemyImage,  offscreenX,  enemyImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
+        characterWalk(playerImage, -offscreenX, playerImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
+
+        CanvasGroup canvasGroup = backgroundPanel.GetComponent<CanvasGroup>();
+        canvasGroup.DOKill();
+        canvasGroup.DOFade(0f, UI_MOVE_DURATION).SetEase(Ease.OutQuad);
+    }
+
+    private void moveCombatUIOnscreen() 
+    {
+        toolbarPanel.transform.DOMove(toolbarPanelOrigPos, UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
+        enemyHealthSlider.transform.DOMove(enemyHealthSliderOrigPos, UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
+        characterWalk(enemyImage,  enemyImageOrigPos.x,  enemyImageOrigPos.y,  7, 30f, CHAR_WALK_DURATION);
+        characterWalk(playerImage, playerImageOrigPos.x, playerImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
+
+        CanvasGroup canvasGroup = backgroundPanel.GetComponent<CanvasGroup>();
+        canvasGroup.DOKill();
+        canvasGroup.DOFade(1f, UI_MOVE_DURATION).SetEase(Ease.OutQuad);
+    }
+
+    private void HideCombatUI ()
+    {
+        toolbarPanel.SetActive(false);
+        enemyHealthSlider.gameObject.SetActive(false);
+        enemyImage.enabled = false;
+        playerImage.enabled = false;
+        backgroundPanel.SetActive(false);   
+    }
+
+    public void lootEnemy() 
+    {
+        int numCards = 0;
+        lootPanel.gameObject.SetActive(true);
+
+        createLootCard(combatManager.enemy.weapon.name, $"Deals 1 to {combatManager.enemy.weapon.weaponDie} Damage"); // adds the enemies weapon to the loot pool
+        numCards++;
+
+        createLootCard(combatManager.enemy.armor.name, $"Protects against 1 to {combatManager.enemy.armor.armorDie} Damage"); // adds the enemies armor to the loot pool
+        numCards++;
+    }
 }
 
 
