@@ -16,10 +16,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject backgroundPanel;
     [SerializeField] private Slider playerHealthSlider;
     [SerializeField] private TMP_Text playerHealthText;
-    [SerializeField] private Image playerImage;
+    [SerializeField] public Image playerImage;
     [SerializeField] private Slider enemyHealthSlider;
     [SerializeField] private TMP_Text enemyHealthText;
-    [SerializeField] private Image enemyImage;
+    [SerializeField] public Image enemyImage;
     [SerializeField] private Slider movementSlider;
     [SerializeField] private TMP_Text movementText;
     [SerializeField] private GameObject gearCardTemplate;
@@ -41,10 +41,15 @@ public class UIManager : MonoBehaviour
     private Vector3 toolbarPanelOrigPos;
     private Vector3 playerHealthSliderOrigPos;
     private Vector3 playerHealthTextOrigPos;
-    private Vector2 playerImageOrigPos;
     private Vector3 enemyHealthSliderOrigPos;
     private Vector3 enemyHealthTextOrigPos;
+    
+
+    // Character Original Data
+    private Color enemyImageOrigColor;
+    private Quaternion enemyImageOrigRot;
     private Vector2 enemyImageOrigPos;
+    private Vector2 playerImageOrigPos;
 
 // -- START --------------------
 
@@ -58,6 +63,10 @@ public class UIManager : MonoBehaviour
         enemyHealthSliderOrigPos = enemyHealthSlider.transform.position;
         enemyHealthTextOrigPos = enemyHealthText.transform.position;
         enemyImageOrigPos = enemyImage.rectTransform.anchoredPosition;
+
+        // sets character image original data
+        enemyImageOrigColor = enemyImage.color;
+        enemyImageOrigRot = enemyImage.rectTransform.localRotation;
 
         // disables all of the combat ui
         HideCombatUI();     
@@ -207,6 +216,16 @@ public class UIManager : MonoBehaviour
         seq.OnComplete(() => rect.anchoredPosition = new Vector2(targetX, groundY)); // snap exactly to ground
     }
 
+    public void resetEnemyImage()
+    {
+        enemyImage.rectTransform.position = enemyImageOrigPos;
+        enemyImage.rectTransform.localRotation = enemyImageOrigRot;
+        enemyImage.color = enemyImageOrigColor;
+    }
+
+    public void enemyWalkOffscreen() {characterWalk(enemyImage,  CHAR_OFFSCREEN_X,  enemyImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);}
+    public void playerWalkOffscreen() {characterWalk(playerImage, -CHAR_OFFSCREEN_X, playerImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);}
+
 // -- COMBAT UI --------------------
 
     public async void disableCombatUI() 
@@ -268,8 +287,8 @@ public class UIManager : MonoBehaviour
         toolbarPanel.transform.DOMove(toolbarPanel.transform.position + new Vector3(0, -UI_MOVE_DISTANCE, 0), UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
         enemyHealthSlider.transform.DOMove(enemyHealthSlider.transform.position + new Vector3(UI_MOVE_DISTANCE, 0, 0), UI_MOVE_DURATION).SetEase(Ease.InOutQuad);
         float offscreenX = ((RectTransform)explorationUI.transform).rect.width; // or the combat canvas
-        characterWalk(enemyImage,  offscreenX,  enemyImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
-        characterWalk(playerImage, -offscreenX, playerImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
+        //characterWalk(enemyImage,  offscreenX,  enemyImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
+        //characterWalk(playerImage, -offscreenX, playerImageOrigPos.y, 7, 30f, CHAR_WALK_DURATION);
 
         CanvasGroup canvasGroup = backgroundPanel.GetComponent<CanvasGroup>();
         canvasGroup.DOKill();
@@ -307,6 +326,27 @@ public class UIManager : MonoBehaviour
 
         createLootCard(combatManager.enemy.armor.name, $"Protects against 1 to {combatManager.enemy.armor.armorDie} Damage"); // adds the enemies armor to the loot pool
         numCards++;
+    }
+
+    public void characterDeath(Image characterImage) {
+        int DEATH_DURATION = 2;
+        //SetPivotWithoutMoving(characterImage.rectTransform, new Vector2(0.5f, 0f));
+
+        Sequence seq = DOTween.Sequence();
+
+        seq.Append(characterImage.DOColor(Color.red, DEATH_DURATION));
+        seq.Join(characterImage.rectTransform.DOLocalRotate(new Vector3(0, 0, -90f), DEATH_DURATION));
+        seq.Append(characterImage.DOFade(0f, DEATH_DURATION));
+    }
+
+    private void SetPivotWithoutMoving(RectTransform rect, Vector2 newPivot)
+    {
+        Vector2 size = rect.rect.size;
+        Vector2 deltaPivot = rect.pivot - newPivot;
+        Vector3 deltaPosition = new Vector3(deltaPivot.x * size.x, deltaPivot.y * size.y);
+        
+        rect.pivot = newPivot;
+        rect.localPosition -= deltaPosition;
     }
 }
 

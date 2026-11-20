@@ -61,6 +61,8 @@ public class CombatManager : MonoBehaviour
         await Awaitable.WaitForSecondsAsync(1.0f, destroyCancellationToken);
         if (enemy.health <= 0) { // checks to see if the enemy is dead
             uiManager.disableCombatUI();
+            uiManager.playerWalkOffscreen();
+            uiManager.characterDeath(uiManager.enemyImage);
             replenishMovement();
             return;
         }
@@ -101,6 +103,8 @@ public class CombatManager : MonoBehaviour
         uiManager.attackAnimation(false);
 
         if (playerController.health <= 0) { // checks to see if the player is dead
+            uiManager.characterDeath(uiManager.playerImage);
+            uiManager.enemyWalkOffscreen();
             uiManager.disableCombatUI();
             return;
         }
@@ -124,6 +128,7 @@ public class CombatManager : MonoBehaviour
     public void setNewEnemy()
     {
         enemy = new Enemy(enemies[Random.Range(0, enemies.Count)]);
+        uiManager.resetEnemyImage();
     }
 
     private void replenishMovement() {playerController.playerMovement = Mathf.Min(playerController.playerMovement += playerController.maxPlayerMovement, playerController.maxPlayerMovement);}
