@@ -28,6 +28,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Transform lootPanel;
     [SerializeField] private GameObject toolbarPanel;
     [SerializeField] private Canvas explorationUI;
+    [SerializeField] private Canvas combatUI;
+    [SerializeField] private TMP_Text messageUI;
 
     // Constants
     public float UI_MOVE_DISTANCE = 9999f;
@@ -50,6 +52,9 @@ public class UIManager : MonoBehaviour
     private Quaternion enemyImageOrigRot;
     private Vector2 enemyImageOrigPos;
     private Vector2 playerImageOrigPos;
+
+    // Other
+    private int combatUIVersion;
 
 // -- START --------------------
 
@@ -85,7 +90,7 @@ public class UIManager : MonoBehaviour
     {
         float percentMovement = (float)playerController.playerMovement/(float)playerController.maxPlayerMovement;
 
-        movementSlider.value = Mathf.MoveTowards(movementSlider.value, percentMovement, .25f * Time.deltaTime);
+        movementSlider.value = Mathf.MoveTowards(movementSlider.value, percentMovement, .15f * Time.deltaTime);
         movementText.text = $"{playerController.playerMovement} / {playerController.maxPlayerMovement}";
     }
 
@@ -93,7 +98,7 @@ public class UIManager : MonoBehaviour
     {
         float percentHealth = (float)playerController.health/(float)playerController.maxHealth;
 
-        playerHealthSlider.value = Mathf.MoveTowards(playerHealthSlider.value, percentHealth, .25f * Time.deltaTime);
+        playerHealthSlider.value = Mathf.MoveTowards(playerHealthSlider.value, percentHealth, .15f * Time.deltaTime);
         playerHealthText.text = $"{playerController.health} / {playerController.maxHealth}";
     }
 
@@ -101,7 +106,7 @@ public class UIManager : MonoBehaviour
     {
         float percentHealth = (float)combatManager.enemy.health/(float)combatManager.enemy.maxHealth;
 
-        enemyHealthSlider.value = Mathf.MoveTowards(enemyHealthSlider.value, percentHealth, .25f * Time.deltaTime);
+        enemyHealthSlider.value = Mathf.MoveTowards(enemyHealthSlider.value, percentHealth, .15f * Time.deltaTime);
         enemyHealthText.text = $"{combatManager.enemy.name}: {combatManager.enemy.health} / {combatManager.enemy.maxHealth}";
     }
 
@@ -230,6 +235,8 @@ public class UIManager : MonoBehaviour
 
     public async void disableCombatUI() 
     {
+        int myVersion = ++combatUIVersion;
+
         // enables the exploration ui
         explorationUI.enabled = true;
 
@@ -238,6 +245,9 @@ public class UIManager : MonoBehaviour
 
         // waits for the combat ui to be onscreen then disables it
         await Awaitable.WaitForSecondsAsync(CHAR_WALK_DURATION, destroyCancellationToken);
+
+        if (myVersion != combatUIVersion) return;
+
         toolbarPanel.SetActive(false);
         enemyHealthSlider.gameObject.SetActive(false);
         enemyImage.enabled = false;
@@ -258,6 +268,8 @@ public class UIManager : MonoBehaviour
 
     public void enableCombatUI()
     {
+        combatUIVersion++;                          
+
         combatManager.setNewEnemy();
         loadCharacterSprites(combatManager.enemy.name);
 
@@ -347,6 +359,32 @@ public class UIManager : MonoBehaviour
         
         rect.pivot = newPivot;
         rect.localPosition -= deltaPosition;
+    }
+
+// -- Message UI --------------------
+
+    public void SendMessage(string message, int fontSize, Color fontColor, float xPosition, float yPositionOffset)
+    {
+        // screen position presets
+        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+        Vector2 screenBottomCenter = new Vector2(Screen.width / 2f, -Screen.height);
+
+        Vector2 startPosition = new Vector2(xPosition, -Screen.height - messageUI.bounds.size.y);
+        Vector2 endPosition = new Vector2(xPosition, screenCenter.y + yPositionOffset);
+
+        TMP_Text newMessage = Instantiate(messageUI, combatUI.transform);
+
+        // set text settings
+        newMessage.gameObject.SetActive(true);
+        newMessage.text = message;
+        newMessage.fontSize = fontSize;
+        newMessage.color = fontColor;
+        newMessage.transform.position = startPosition;
+
+        Sequence seq = DOTween.Sequence();
+        seq.Append(newMessage.transform.DOMove(endPosition, UI_MOVE_DURATION).SetEase(Ease.InOutQuad));
+        seq.AppendInterval(.5f);
+        seq.Append(newMessage.DOFade(0f, 0.5f));
     }
 }
 

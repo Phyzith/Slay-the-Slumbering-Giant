@@ -6,6 +6,8 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Other Scripts")]
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private GiantManager giantManager;
+    [SerializeField] private CombatManager combatManager;
 
     [Header("Player Settings")]
     public int maxHealth = 5;
@@ -103,6 +105,12 @@ public class PlayerController : MonoBehaviour
     void MovePlayer(Vector3 hexPos) 
     {
         transform.position = Vector3.SmoothDamp(transform.position, hexPos, ref currentVelocity, moveTime);
+
+        if (hexPos == giantManager.giantPos)
+        {
+            Debug.Log("THE GIANT IS HERE NO WAY!!!");
+            combatManager.GiantCombat();
+        }
     }
 
     void setGear() 

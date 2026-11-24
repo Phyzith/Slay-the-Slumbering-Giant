@@ -7,6 +7,7 @@ public class CombatManager : MonoBehaviour
 {
     [SerializeField] private UIManager uiManager;
     [SerializeField] private PlayerController playerController;
+    [SerializeField] private GiantManager giantManager;
     private List<Enemy> enemies = new List<Enemy>();
     public Enemy enemy;
 
@@ -17,7 +18,6 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private Button attackButton;
     [SerializeField] private Button fleeButton;
     [SerializeField] private Button convinceButton;
-
 
     void Start()
     {
@@ -55,33 +55,47 @@ public class CombatManager : MonoBehaviour
     async void attack() 
     {
         // player attack
-        enemy.health -= Mathf.Max(0, rollDie(playerController.playerWeapon.weaponDie) - rollDie(enemy.armor.armorDie));
+        int damage = Mathf.Max(0, rollDie(playerController.playerWeapon.weaponDie) - rollDie(enemy.armor.armorDie));
+        enemy.health -= damage;
+        uiManager.SendMessage($"-{damage}", 100, Color.red, uiManager.enemyImage.transform.position.x, 0);
         uiManager.attackAnimation(true);
-        Debug.Log("Lets get this punk!");
         await Awaitable.WaitForSecondsAsync(1.0f, destroyCancellationToken);
+
         if (enemy.health <= 0) { // checks to see if the enemy is dead
             uiManager.disableCombatUI();
             uiManager.playerWalkOffscreen();
             uiManager.characterDeath(uiManager.enemyImage);
+            uiManager.SendMessage($"The Slumbering Giant is {giantManager.getGiantCompassDirection()}", 100, Color.white, Screen.width / 2, -Screen.height / 8);
             replenishMovement();
             return;
         }
 
         // enemy attack
         enemyAttack();
+
+        giantManager.MoveGiant();
+        //Debug.Log("Lets get this punk!");
     }
 
     // attempts to run from the enemy when you click the flee button
     void flee() 
     {
         int fleeDie = rollDie(20) + rollDie((playerController.maxHealth/playerController.health) * 10);
-        if (fleeDie >= 20) 
+        if (fleeDie >= 15) 
         {
+            uiManager.SendMessage($"You Escaped the {enemy.name}!", 100, Color.green, Screen.width / 2, -Screen.height / 8);
             uiManager.disableCombatUI();
+            uiManager.playerWalkOffscreen();
+            uiManager.enemyWalkOffscreen();
             replenishMovement();
+        } else 
+        {
+            uiManager.SendMessage("You Aren't Able to Get Away!", 100, Color.red, Screen.width / 2, Screen.height / 8);
+            enemyAttack();
         }
 
-        Debug.Log("RUN AWWAAAAY RUN AWAAAAY!!!");
+        giantManager.MoveGiant();
+        //Debug.Log("RUN AWWAAAAY RUN AWAAAAY!!!");
     }
 
     // attempts to convince the enemy when you click the convince button
@@ -90,16 +104,28 @@ public class CombatManager : MonoBehaviour
         int fleeDie = rollDie(20) + rollDie(playerController.playerWeapon.weaponDie);
         if (fleeDie >= 20) 
         {
+            //uiManager.SendMessage("You Befriended Them!", 100, Color.green, Screen.width / 2, Screen.height / 4);
+            uiManager.SendMessage($"The Slumbering Giant is {giantManager.getGiantCompassDirection()}", 100, Color.white, Screen.width / 2, -Screen.height / 8);
             uiManager.disableCombatUI();
+            uiManager.playerWalkOffscreen();
+            uiManager.enemyWalkOffscreen();
             replenishMovement();
+        } else 
+        {
+            uiManager.SendMessage("They Arent Friendly!", 100, Color.red, Screen.width / 2, Screen.height / 8);
+            enemyAttack();
         }
 
-        Debug.Log("I dont want to fight man!");
+        giantManager.MoveGiant();
+        //Debug.Log("I dont want to fight!");
     }
 
+    // the enemy attacks the player
     void enemyAttack() 
     {
-        playerController.health -= rollDie(enemy.weapon.weaponDie - playerController.playerArmor.armorDie);
+        int damage = rollDie(enemy.weapon.weaponDie - playerController.playerArmor.armorDie);
+        playerController.health -= damage;
+        uiManager.SendMessage($"-{damage}", 100, Color.red, uiManager.playerImage.transform.position.x, 0);
         uiManager.attackAnimation(false);
 
         if (playerController.health <= 0) { // checks to see if the player is dead
@@ -113,6 +139,8 @@ public class CombatManager : MonoBehaviour
     // creates a list of random enemies to fight
     void initializeEnemyList()
     {
+        Enemy slumberingGiant = new Enemy("Slumbering Giant", 10, 10, Gear.shortSword, Gear.leatherArmor); // keep the slumbering giant at index 0 of the list
+        enemies.Add(slumberingGiant);
         Enemy fishMan = new Enemy("Fish Man", 3, 3, Gear.shortSword, Gear.noArmor);
         enemies.Add(fishMan);
         Enemy potMan = new Enemy("Pot Man", 3, 3, Gear.shortBow, Gear.leatherArmor);
@@ -127,8 +155,13 @@ public class CombatManager : MonoBehaviour
 
     public void setNewEnemy()
     {
-        enemy = new Enemy(enemies[Random.Range(0, enemies.Count)]);
+        enemy = new Enemy(enemies[Random.Range(1, enemies.Count)]);
         uiManager.resetEnemyImage();
+    }
+
+    public void GiantCombat()
+    {
+        enemy = new Enemy(enemies[0]);
     }
 
     private void replenishMovement() {playerController.playerMovement = Mathf.Min(playerController.playerMovement += playerController.maxPlayerMovement, playerController.maxPlayerMovement);}
